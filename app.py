@@ -24,14 +24,20 @@ class ConnectionManager:
         self.active.append(ws)
 
     def disconnect(self, ws: WebSocket):
-        self.active.remove(ws)
+        try:
+            self.active.remove(ws)
+        except ValueError:
+            pass
 
     async def broadcast(self, data: str):
         for ws in self.active.copy():
             try:
                 await ws.send_text(data)
-            except:
-                self.active.remove(ws)
+            except Exception:
+                try:
+                    self.active.remove(ws)
+                except ValueError:
+                    pass
 
 
 manager = ConnectionManager()
@@ -106,7 +112,7 @@ class TwitchClient:
 
 
 twitch = TwitchClient()
-
+_twitch_task: asyncio.Task | None = None
 
 app = FastAPI()
 
@@ -130,12 +136,20 @@ async def websocket(ws: WebSocket):
 
 @app.on_event("startup")
 async def startup():
-    asyncio.create_task(twitch.run())
+    global _twitch_task
+    _twitch_task = asyncio.create_task(twitch.run())
 
 
 @app.on_event("shutdown")
 async def shutdown():
+    global _twitch_task
     twitch.stop()
+    if _twitch_task:
+        _twitch_task.cancel()
+        try:
+            await _twitch_task
+        except asyncio.CancelledError:
+            pass
 
 
 if __name__ == "__main__":
