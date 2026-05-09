@@ -2,6 +2,7 @@ import os
 import asyncio
 import re
 import json
+import ssl
 import aiohttp
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
@@ -9,10 +10,10 @@ from pathlib import Path
 from datetime import datetime
 import uvicorn
 
-TWITCH_CHANNEL = "ielziinho"
-DISCORD_WEBHOOK_URL = "https://ptb.discord.com/api/webhooks/1501345501994287359/VDAEHn-bUi2tPjfbIFvu-FhBjz8n1YwZ1gcRF_oO7XfTsNk3KiwE4cseWqNT8QD3q6wn"
-TWITCH_OAUTH_TOKEN = "fyxjxh7nckwaz2v8hhjpn6pu89kpke"
-NICK = "lordsmo00ke"
+TWITCH_CHANNEL = os.getenv("TWITCH_CHANNEL", "ielziinho")
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+TWITCH_OAUTH_TOKEN = os.getenv("TWITCH_OAUTH_TOKEN")
+NICK = os.getenv("TWITCH_NICK", TWITCH_CHANNEL)
 
 
 class ConnectionManager:
@@ -46,13 +47,14 @@ manager = ConnectionManager()
 class TwitchClient:
     def __init__(self):
         self.host = "irc.chat.twitch.tv"
-        self.port = 6667
+        self.port = 6697
         self.reader = None
         self.writer = None
         self.running = True
 
     async def connect(self):
-        self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
+        ctx = ssl.create_default_context()
+        self.reader, self.writer = await asyncio.open_connection(self.host, self.port, ssl=ctx)
         self.writer.write(f"PASS oauth:{TWITCH_OAUTH_TOKEN}\n".encode())
         self.writer.write(f"NICK {NICK}\n".encode())
         self.writer.write(f"JOIN #{TWITCH_CHANNEL}\n".encode())
@@ -137,6 +139,12 @@ async def websocket(ws: WebSocket):
 @app.on_event("startup")
 async def startup():
     global _twitch_task
+    if not TWITCH_OAUTH_TOKEN:
+        print("ERRO: TWITCH_OAUTH_TOKEN não definido")
+        return
+    if not DISCORD_WEBHOOK_URL:
+        print("ERRO: DISCORD_WEBHOOK_URL não definido")
+        return
     _twitch_task = asyncio.create_task(twitch.run())
 
 

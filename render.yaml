@@ -3,7 +3,14 @@ services:
     name: twitch-chat-dashboard
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn twitch_chat_logger:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PORT
         value: 10000
+      - key: TWITCH_CHANNEL
+        value: ielziinho
+      - key: TWITCH_NICK
+        value: lordsmo00ke
+      # TWITCH_OAUTH_TOKEN e DISCORD_WEBHOOK_URL:
+      # Defina estes no dashboard do Render (Environment > Secret Files)
+      # para não ficarem expostos no git.
