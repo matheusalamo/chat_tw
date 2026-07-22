@@ -1,0 +1,15 @@
+services:
+  - type: worker
+    name: twitch-chat-logger
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python twitch_chat_logger.py
+    envVars:
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+      - key: TWITCH_OAUTH_TOKEN
+        sync: false
+      - key: NICK
+        sync: false
+      - key: TWITCH_CHANNEL
+        sync: false
